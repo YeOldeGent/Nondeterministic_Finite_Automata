@@ -34,8 +34,26 @@ public class NFA implements NFAInterface {
 //        helper method, e.g., private Set<NFAState> eClosure(NFAState s, Set<NFASate> visited)
 //        that invokes itself
 
+//
+//        A------B ----- D
+//                \
+//                 \
+//                  C
+
+        // base case
+        // no epsilon transitions lead us to unvisited states
+        // return an empty set
+
+        //general case
+        // current state and explore its one of its epsilons
+
+
 
         return null;
+    }
+
+    private Set<NFAState> eClosure(NFAState s, Set<NFAState> visited) {
+
     }
 
     @Override

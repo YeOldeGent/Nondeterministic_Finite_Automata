@@ -1,6 +1,68 @@
 package fa.nfa;
 
 import fa.State;
+import fa.dfa.DFAState;
+
+import java.util.*;
 
 public class NFAState extends State {
+
+    private final String epsilon = "e";
+    private HashMap<Character, Set<NFAState>> transitionMap; // order does not matter here so use HashSet
+    private boolean isFinal;//remembers its type
+
+    public NFAState() {
+        transitionMap = new HashMap<Character, Set<NFAState>>();
+    }
+
+    /**
+     * Accessor for the state type
+     * @return true if final and false otherwise
+     */
+    public boolean isFinal(){
+        return isFinal;
+    }
+
+
+    /**
+     * Add the transition from <code> this </code> object
+     * @param onSymb the alphabet symbol
+     * @param toState to DFA state
+     */
+    public void addTransition(char onSymb, NFAState toState) {
+        Set<NFAState> currentStates = transitionMap.get(onSymb);
+        if (currentStates != null) {
+            currentStates.add(toState);
+        } else {
+            currentStates = new LinkedHashSet<NFAState>();
+            currentStates.add(toState);
+        }
+
+        transitionMap.put(onSymb, currentStates); // replaces previous set
+    }
+
+    /**
+     * Retrieves the set of states that this NFAState transitions to
+     * on the given symbol
+     * @param symb - the alphabet symbol
+     * @return the new state
+     */
+    public Set<NFAState> getTo(char symb){
+        Set<NFAState> set = transitionMap.get(symb);
+        if(set == null){
+            System.err.println("ERROR: DFAState.getTo(char symb) returns null on " + symb + " from " + name);
+            System.exit(2);
+        }
+        return set;
+    }
+
+
+    /**
+     * This returns this states reachable states via epsilon transitions
+     * @return the set of epsilon states
+     */
+    public Set<NFAState> getEpsilonStates() {
+
+        return transitionMap.get(epsilon);
+    }
 }
