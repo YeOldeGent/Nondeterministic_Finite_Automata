@@ -7,11 +7,13 @@ import java.util.*;
 
 public class NFAState extends State {
 
-    private final String epsilon = "e";
+    private final char epsilon = 'e';
     private HashMap<Character, Set<NFAState>> transitionMap; // order does not matter here so use HashSet
     private boolean isFinal;//remembers its type
 
-    public NFAState() {
+    public NFAState(String name) {
+        this.name = name;
+        this.isFinal = false;
         transitionMap = new HashMap<Character, Set<NFAState>>();
     }
 
@@ -21,6 +23,11 @@ public class NFAState extends State {
      */
     public boolean isFinal(){
         return isFinal;
+    }
+
+    /** Call to make state a final state */
+    public void setFinal() {
+        this.isFinal = true;
     }
 
 
@@ -34,6 +41,7 @@ public class NFAState extends State {
         if (currentStates != null) {
             currentStates.add(toState);
         } else {
+            // this handles new symbols
             currentStates = new LinkedHashSet<NFAState>();
             currentStates.add(toState);
         }
