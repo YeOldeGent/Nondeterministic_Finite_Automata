@@ -73,4 +73,12 @@ public class NFAState extends State {
 
         return transitionMap.get(epsilon);
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof NFAState)) return false;
+        NFAState nfaState = (NFAState) o;
+        return this.name.equals(nfaState.name);
+    }
 }

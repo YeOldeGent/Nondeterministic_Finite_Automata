@@ -2,6 +2,8 @@ package fa.nfa;
 
 import fa.State;
 import fa.dfa.DFA;
+import fa.dfa.DFAState;
+import sun.misc.Queue;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -13,6 +15,7 @@ public class NFA implements NFAInterface {
     private LinkedHashSet<NFAState> finalStates;
     private LinkedHashSet<Character> alphabet;
     private NFAState startState;
+    private final char epsilon = 'e';
 
     public NFA() {
         nfaStates = new LinkedHashSet<NFAState>();
@@ -25,13 +28,105 @@ public class NFA implements NFAInterface {
     public DFA getDFA() {
 
         // this will be hard supposedly
-        NFAState r = checkIfExists("r");
-        Set<NFAState> eClosureStates = this.eClosure(r);
+        //NFAState r = checkIfExists("r");
+        //Set<NFAState> eClosureStates = this.eClosure(startState);
 
         // Requires traversing NFA. To do this you must implement the breadth-first search (BFS)
         //algorithm ( a loop iterating over a queue; an element of a queue is a set of NFA states).
 
-        return null;
+        // by hand steps
+        // 1) Create a transition table and epsilon closure for each state
+        // 2) Take power set of our states to get all possible DFA states
+        // 3) If any state is present in the 1st transition, include it as a power set transition
+
+        // final DFA has no e transitions
+
+
+        // make a dfa object
+        // add start state - should be the starting state of nfa
+        // add final states - this will be any dfa state whose name contains a nfa final state, check name
+        // add other states - will be combos of nfa states - all original nfa states will map to a set
+        // ^^ will require adding new states
+        // add transitions from
+
+        // we will need to check the new state we create and add transitions for them too
+
+        DFA dfa = new DFA();
+        dfa.addStartState(startState.getName());
+        Queue<NFAState> stateQueue = new Queue<NFAState>();
+
+        // add all NFA states to a queue
+//        for (NFAState currentNFAState : nfaStates) {
+//            stateQueue.enqueue(currentNFAState);
+//        }
+        stateQueue.enqueue(startState);
+
+
+        // do a bfs traversal of the NFA graph and create the appropriate dfa states and transitions as we go
+        // assumption is that startState is first in
+        while (!stateQueue.isEmpty()) {
+            NFAState currentState = null;
+            try {currentState = stateQueue.dequeue(); } catch (InterruptedException e) { e.printStackTrace(); }
+            // option 1: cycle abc  // option 2:  expose all chars at once???
+            for (Character c : alphabet) {
+                Set<NFAState> transitionStates = currentState.getTo(c);
+                Set<NFAState> transitionStatesAndEpsilons = getEpsilonDeltasFromSet(transitionStates); // this set will become the new DFA state
+                String newDFAStateName = getDFANameFromSet(transitionStatesAndEpsilons);
+
+                // check if this state is a final state
+                if (dfaStateIsFinalState(newDFAStateName)) {
+                    addFinalState(newDFAStateName); // will add it to DFA states
+                }
+                // TODO: error from empty set, we likely need to ignore empty sets and not add them to the dfa
+                dfa.addState(newDFAStateName);
+
+                // transition
+                dfa.addTransition(currentState.getName(), c, newDFAStateName);
+            }
+        }
+
+        return dfa;
+    }
+
+    /** Checks if DFAState should be a final state based on our NFA Final States*/
+    private boolean dfaStateIsFinalState(String dfaName) {
+        for (NFAState nfaS : finalStates) {
+            if (dfaName.contains(nfaS.getName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    private String getDFANameFromSet(Set<NFAState> set) {
+        String newDFAStateName = "{";
+        for (NFAState s : set) {
+            newDFAStateName += s.getName() + ",";
+        }
+        newDFAStateName = newDFAStateName.substring(0,newDFAStateName.length()-2); // remove the extra comma
+        newDFAStateName += "}";
+
+        return newDFAStateName;
+    }
+
+    /** returns the set of states accessible from the given set of states
+     * via epsilon transitions
+     * @param nfaStateSet - the set of states to check for additional state which may be reachable via e transitions
+     * @return reachableStates - the set of states that are reachable via e transitions
+     */
+    private Set<NFAState> getEpsilonDeltasFromSet(Set<NFAState> nfaStateSet) {
+        Set<NFAState> reachableStates = nfaStateSet;
+        for (NFAState state : nfaStateSet) {
+            Set<NFAState> eStates = this.eClosure(state);
+            // TODO: this that states are returning
+            for (NFAState reachedState : eStates) {
+                if (!reachableStates.contains(reachedState)) {
+                    reachableStates.add(reachedState);
+                }
+            }
+        }
+        return reachableStates;
     }
 
     @Override
@@ -115,7 +210,7 @@ public class NFA implements NFAInterface {
 
     @Override
     public void addTransition(String fromState, char onSymb, String toState) {
-        if (!alphabet.contains(onSymb)) { alphabet.add(onSymb); }
+        if (!alphabet.contains(onSymb) && onSymb != epsilon) { alphabet.add(onSymb); }
         NFAState originState  = checkIfExists(fromState);
         NFAState destinationState = checkIfExists(toState);
         if (originState == null || destinationState == null) {
