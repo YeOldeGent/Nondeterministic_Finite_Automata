@@ -3,10 +3,14 @@ package fa.nfa;
 import fa.State;
 import fa.dfa.DFA;
 import fa.dfa.DFAState;
-import sun.misc.Queue;
+//import sun.misc.Queue;
+//import java.util.PriorityQueue;
+import java.util.*;
 
-import java.util.LinkedHashSet;
-import java.util.Set;
+/**
+ * Questions:
+ * just look at
+ */
 
 public class NFA implements NFAInterface {
 
@@ -51,19 +55,43 @@ public class NFA implements NFAInterface {
 
         // we will need to check the new state we create and add transitions for them too
 
+
+
+        ///----------------------------------New PLan--------------------------------------
+        // key: a DFA is a set of NFA states
+
+        // queue of sets of NFAStates
+        // Queue<Set<NFAState>> stateQueue = new LinkedList<Set<NFAState>>();
+
+        // 1st set of NFAStates will jsut be startState
+        // make a new set with jsut the starState
+        // enqueue that
+
+        // dequeue startState {a} and mark visited
+        // look at its its transitions
+        //{a} -0->{a}     {a} -1->{a,b}
+        // here we need to add a new set of nFAState to queue {a,b}
+        // enqueue {a,b}
+
+        // dequeue {a,b}     - since a and b are NFAState type we have a's transitions and b's transitions
+        // process transitions
+        // {a,b} --0-> {a}              {a,b} --1-> {a,b}           ?? how do we represent these transitions - in dfa states
+
+
+//-----------------------------------------------------------------------------------------------
         DFA dfa = new DFA();
         dfa.addStartState("[" + startState.getName() + "]");
-        Queue<NFAState> stateQueue = new Queue<NFAState>();
+        Queue<NFAState> stateQueue = new LinkedList<NFAState>();
         Set<NFAState> visitedNFAStates = new LinkedHashSet<NFAState>();
 
-        stateQueue.enqueue(startState);
+        stateQueue.add(startState);
         visitedNFAStates.add(startState);
 
         // do a bfs traversal of the NFA graph and create the appropriate dfa states and transitions as we go
         // assumption is that startState is first in
         while (!stateQueue.isEmpty()) {
             NFAState currentState = null;
-            try {currentState = stateQueue.dequeue(); } catch (InterruptedException e) { e.printStackTrace(); }
+            currentState = stateQueue.remove();
             visitedNFAStates.add(currentState);
 
             // this NFA state must exist in our DFA so add it as a DFAState
@@ -90,7 +118,7 @@ public class NFA implements NFAInterface {
                 for (NFAState child : transitionStatesAndEpsilons) {
                     // traversal should only visit each node once
                     if (!visitedNFAStates.contains(child)) {
-                        stateQueue.enqueue(child);
+                        stateQueue.add(child);
                     }
                 }
 
@@ -119,7 +147,9 @@ public class NFA implements NFAInterface {
         for (NFAState s : set) {
             newDFAStateName.append(s.getName()).append(",");
         }
-        newDFAStateName = new StringBuilder(newDFAStateName.substring(0, newDFAStateName.length() - 1)); // remove the extra comma
+        if (newDFAStateName.length() > 1) {
+            newDFAStateName = new StringBuilder(newDFAStateName.substring(0, newDFAStateName.length() - 1)); // remove the extra comma
+        }
         newDFAStateName.append("]");
 
         return newDFAStateName.toString();
