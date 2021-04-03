@@ -61,7 +61,7 @@ public class NFA implements NFAInterface {
         // key: a DFA is a set of NFA states
 
         // queue of sets of NFAStates
-        // Queue<Set<NFAState>> stateQueue = new LinkedList<Set<NFAState>>();
+        // Queue<Set<NFAState>> nfaSetQueue = new LinkedList<Set<NFAState>>();
 
         // 1st set of NFAStates will jsut be startState
         // make a new set with jsut the starState
@@ -80,51 +80,65 @@ public class NFA implements NFAInterface {
 
 //-----------------------------------------------------------------------------------------------
         DFA dfa = new DFA();
-        dfa.addStartState("[" + startState.getName() + "]");
-        Queue<NFAState> stateQueue = new LinkedList<NFAState>();
-        Set<NFAState> visitedNFAStates = new LinkedHashSet<NFAState>();
 
-        stateQueue.add(startState);
-        visitedNFAStates.add(startState);
+        Queue<Set<NFAState>> nfaSetQueue = new LinkedList<Set<NFAState>>(); // elements are each a set of nfa states which will correspond to a single dfa state
+        Set<Set<NFAState>> visitedNFAStates = new LinkedHashSet<Set<NFAState>>(); // used to track which elements we have visited
+
+        dfa.addStartState(startState.getDFAName());
+        Set<NFAState> startSet = new LinkedHashSet<NFAState>();
+        startSet.add(startState);
+        nfaSetQueue.add(startSet);
+        //visitedNFAStates.add(startSet);
 
         // do a bfs traversal of the NFA graph and create the appropriate dfa states and transitions as we go
         // assumption is that startState is first in
-        while (!stateQueue.isEmpty()) {
-            NFAState currentState = null;
-            currentState = stateQueue.remove();
-            visitedNFAStates.add(currentState);
-
-            // this NFA state must exist in our DFA so add it as a DFAState
-            if (currentState.isFinal()) {
-                dfa.addFinalState(currentState.getDFAName());
-            } else {
-                dfa.addState(currentState.getDFAName());
+        while (!nfaSetQueue.isEmpty()) {
+            Set<NFAState> currentSet = null;
+            currentSet = nfaSetQueue.remove();
+            visitedNFAStates.add(currentSet);
+            String currentSetName = getDFANameFromSet(currentSet); // this currentSet will be a state in our DFA
+            // if any NFAState is a final state this set of NFAStates (aka is our DFAState) should be treated as a final state
+            // TODO: might be able to remove this
+            boolean isFinalSet = false;
+            for (NFAState s : currentSet) {
+                if (s.isFinal()) {
+                    dfa.addFinalState(currentSetName);
+                    isFinalSet = true;
+                    break;
+                }
             }
 
-            // explore via alphabet - for each transition from currentState
-            for (Character c : alphabet) {
-                Set<NFAState> transitionStates = currentState.getTo(c); // this could return an empty set
-                Set<NFAState> transitionStatesAndEpsilons = getEpsilonDeltasFromSet(transitionStates); // this set will become the new DFA state
-                String newDFAStateName = getDFANameFromSet(transitionStatesAndEpsilons);
+            if (!isFinalSet) {
+                dfa.addState(currentSetName);
+            }
 
-                // check if this state is a final state
-                if (dfaStateIsFinalState(newDFAStateName)) {
-                    dfa.addFinalState(newDFAStateName); // will add it to DFA states PROBLEM
-                } else {
-                    dfa.addState(newDFAStateName);
-                }
+            // explore currentSet's children via alphabet - for each transition from currentState
+            for (NFAState child : currentSet) {
+                for (Character c : alphabet) {
+                    Set<NFAState> transitionStates = child.getTo(c); // this could return an empty set
+                    Set<NFAState> transitionStatesAndEpsilons = getEpsilonDeltasFromSet(transitionStates); // this set will become the new DFA state
+                    if (transitionStatesAndEpsilons.isEmpty()) {continue;}
+                    String newDFAStateName = getDFANameFromSet(transitionStatesAndEpsilons);
 
-                // enqueue currentStates children NFAStates
-                for (NFAState child : transitionStatesAndEpsilons) {
-                    // traversal should only visit each node once
-                    if (!visitedNFAStates.contains(child)) {
-                        stateQueue.add(child);
+                    if (!visitedNFAStates.contains(transitionStatesAndEpsilons)) {
+                        nfaSetQueue.add(transitionStatesAndEpsilons);
                     }
-                }
 
-                // transition
-                // TODO: BRACKETS may cause problems
-                dfa.addTransition(currentState.getDFAName(), c, newDFAStateName);
+                    isFinalSet = false;
+                    for (NFAState s : transitionStatesAndEpsilons) {
+                        if (s.isFinal()) {
+                            dfa.addFinalState(newDFAStateName);
+                            isFinalSet = true;
+                            break;
+                        }
+                    }
+
+                    if (!isFinalSet) {
+                        dfa.addState(newDFAStateName);
+                    }
+
+                    dfa.addTransition(currentSetName, c, newDFAStateName);
+                }
             }
         }
 
