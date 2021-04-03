@@ -51,15 +51,14 @@ public class NFAState extends State {
 
     /**
      * Retrieves the set of states that this NFAState transitions to
-     * on the given symbol
+     * on the given symbol returns an empty set for no transitions.
      * @param symb - the alphabet symbol
      * @return the new state
      */
     public Set<NFAState> getTo(char symb){
         Set<NFAState> set = transitionMap.get(symb);
         if(set == null){
-            System.err.println("ERROR: DFAState.getTo(char symb) returns null on " + symb + " from " + name);
-            System.exit(2);
+            set = new LinkedHashSet<NFAState>();
         }
         return set;
     }
@@ -80,5 +79,9 @@ public class NFAState extends State {
         if (!(o instanceof NFAState)) return false;
         NFAState nfaState = (NFAState) o;
         return this.name.equals(nfaState.name);
+    }
+
+    public String getDFAName() {
+        return "[" + this.getName() + "]";
     }
 }

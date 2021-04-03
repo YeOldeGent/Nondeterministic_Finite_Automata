@@ -69,7 +69,7 @@ public class DFAState extends State{
 	public DFAState getTo(char symb){
 		DFAState ret = delta.get(symb);
 		if(ret == null){
-			 System.err.println("ERROR: DFAState.getTo(char symb) returns null on " + symb + " from " + name);
+			 System.err.println("What the heck!!!!! ERROR: DFAState.getTo(char symb) returns null on " + symb + " from " + name);
 			 System.exit(2);
 			}
 		return delta.get(symb);

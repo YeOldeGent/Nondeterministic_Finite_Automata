@@ -52,36 +52,51 @@ public class NFA implements NFAInterface {
         // we will need to check the new state we create and add transitions for them too
 
         DFA dfa = new DFA();
-        dfa.addStartState(startState.getName());
+        dfa.addStartState("[" + startState.getName() + "]");
         Queue<NFAState> stateQueue = new Queue<NFAState>();
+        Set<NFAState> visitedNFAStates = new LinkedHashSet<NFAState>();
 
-        // add all NFA states to a queue
-//        for (NFAState currentNFAState : nfaStates) {
-//            stateQueue.enqueue(currentNFAState);
-//        }
         stateQueue.enqueue(startState);
-
+        visitedNFAStates.add(startState);
 
         // do a bfs traversal of the NFA graph and create the appropriate dfa states and transitions as we go
         // assumption is that startState is first in
         while (!stateQueue.isEmpty()) {
             NFAState currentState = null;
             try {currentState = stateQueue.dequeue(); } catch (InterruptedException e) { e.printStackTrace(); }
-            // option 1: cycle abc  // option 2:  expose all chars at once???
+            visitedNFAStates.add(currentState);
+
+            // this NFA state must exist in our DFA so add it as a DFAState
+            if (currentState.isFinal()) {
+                dfa.addFinalState(currentState.getDFAName());
+            } else {
+                dfa.addState(currentState.getDFAName());
+            }
+
+            // explore via alphabet - for each transition from currentState
             for (Character c : alphabet) {
-                Set<NFAState> transitionStates = currentState.getTo(c);
+                Set<NFAState> transitionStates = currentState.getTo(c); // this could return an empty set
                 Set<NFAState> transitionStatesAndEpsilons = getEpsilonDeltasFromSet(transitionStates); // this set will become the new DFA state
                 String newDFAStateName = getDFANameFromSet(transitionStatesAndEpsilons);
 
                 // check if this state is a final state
                 if (dfaStateIsFinalState(newDFAStateName)) {
-                    addFinalState(newDFAStateName); // will add it to DFA states
+                    dfa.addFinalState(newDFAStateName); // will add it to DFA states PROBLEM
+                } else {
+                    dfa.addState(newDFAStateName);
                 }
-                // TODO: error from empty set, we likely need to ignore empty sets and not add them to the dfa
-                dfa.addState(newDFAStateName);
+
+                // enqueue currentStates children NFAStates
+                for (NFAState child : transitionStatesAndEpsilons) {
+                    // traversal should only visit each node once
+                    if (!visitedNFAStates.contains(child)) {
+                        stateQueue.enqueue(child);
+                    }
+                }
 
                 // transition
-                dfa.addTransition(currentState.getName(), c, newDFAStateName);
+                // TODO: BRACKETS may cause problems
+                dfa.addTransition(currentState.getDFAName(), c, newDFAStateName);
             }
         }
 
@@ -100,14 +115,14 @@ public class NFA implements NFAInterface {
 
 
     private String getDFANameFromSet(Set<NFAState> set) {
-        String newDFAStateName = "{";
+        StringBuilder newDFAStateName = new StringBuilder("[");
         for (NFAState s : set) {
-            newDFAStateName += s.getName() + ",";
+            newDFAStateName.append(s.getName()).append(",");
         }
-        newDFAStateName = newDFAStateName.substring(0,newDFAStateName.length()-2); // remove the extra comma
-        newDFAStateName += "}";
+        newDFAStateName = new StringBuilder(newDFAStateName.substring(0, newDFAStateName.length() - 1)); // remove the extra comma
+        newDFAStateName.append("]");
 
-        return newDFAStateName;
+        return newDFAStateName.toString();
     }
 
     /** returns the set of states accessible from the given set of states
@@ -119,7 +134,7 @@ public class NFA implements NFAInterface {
         Set<NFAState> reachableStates = nfaStateSet;
         for (NFAState state : nfaStateSet) {
             Set<NFAState> eStates = this.eClosure(state);
-            // TODO: this that states are returning
+            // TODO: check that states are returning the propper states. ie that
             for (NFAState reachedState : eStates) {
                 if (!reachableStates.contains(reachedState)) {
                     reachableStates.add(reachedState);
