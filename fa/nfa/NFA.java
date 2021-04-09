@@ -1,5 +1,6 @@
 package fa.nfa;
 
+import com.sun.deploy.util.StringUtils;
 import fa.State;
 import fa.dfa.DFA;
 import fa.dfa.DFAState;
@@ -30,101 +31,67 @@ public class NFA implements NFAInterface {
 
     @Override
     public DFA getDFA() {
-
-        // this will be hard supposedly
-        //NFAState r = checkIfExists("r");
-        //Set<NFAState> eClosureStates = this.eClosure(startState);
-
-        // Requires traversing NFA. To do this you must implement the breadth-first search (BFS)
-        //algorithm ( a loop iterating over a queue; an element of a queue is a set of NFA states).
-
-        // by hand steps
-        // 1) Create a transition table and epsilon closure for each state
-        // 2) Take power set of our states to get all possible DFA states
-        // 3) If any state is present in the 1st transition, include it as a power set transition
-
-        // final DFA has no e transitions
-
-
-        // make a dfa object
-        // add start state - should be the starting state of nfa
-        // add final states - this will be any dfa state whose name contains a nfa final state, check name
-        // add other states - will be combos of nfa states - all original nfa states will map to a set
-        // ^^ will require adding new states
-        // add transitions from
-
-        // we will need to check the new state we create and add transitions for them too
-
-
-
-        ///----------------------------------New PLan--------------------------------------
-        // key: a DFA is a set of NFA states
-
-        // queue of sets of NFAStates
-        // Queue<Set<NFAState>> nfaSetQueue = new LinkedList<Set<NFAState>>();
-
-        // 1st set of NFAStates will jsut be startState
-        // make a new set with jsut the starState
-        // enqueue that
-
-        // dequeue startState {a} and mark visited
-        // look at its its transitions
-        //{a} -0->{a}     {a} -1->{a,b}
-        // here we need to add a new set of nFAState to queue {a,b}
-        // enqueue {a,b}
-
-        // dequeue {a,b}     - since a and b are NFAState type we have a's transitions and b's transitions
-        // process transitions
-        // {a,b} --0-> {a}              {a,b} --1-> {a,b}           ?? how do we represent these transitions - in dfa states
-
-
-//-----------------------------------------------------------------------------------------------
         DFA dfa = new DFA();
 
         Queue<Set<NFAState>> nfaSetQueue = new LinkedList<Set<NFAState>>(); // elements are each a set of nfa states which will correspond to a single dfa state
-        Set<Set<NFAState>> visitedNFAStates = new LinkedHashSet<Set<NFAState>>(); // used to track which elements we have visited
+        Set<Set<NFAState>> visitedNFAStates = new HashSet<Set<NFAState>>(); // used to track which elements we have visited
 
         dfa.addStartState(startState.getDFAName());
         Set<NFAState> startSet = new LinkedHashSet<NFAState>();
         startSet.add(startState);
         nfaSetQueue.add(startSet);
-        //visitedNFAStates.add(startSet);
 
         // do a bfs traversal of the NFA graph and create the appropriate dfa states and transitions as we go
-        // assumption is that startState is first in
         while (!nfaSetQueue.isEmpty()) {
-            Set<NFAState> currentSet = null;
+            Set<NFAState> currentSet = new HashSet<NFAState>();
             currentSet = nfaSetQueue.remove();
             visitedNFAStates.add(currentSet);
             String currentSetName = getDFANameFromSet(currentSet); // this currentSet will be a state in our DFA
-            // if any NFAState is a final state this set of NFAStates (aka is our DFAState) should be treated as a final state
-            // TODO: might be able to remove this
-            boolean isFinalSet = false;
-            for (NFAState s : currentSet) {
-                if (s.isFinal()) {
-                    dfa.addFinalState(currentSetName);
-                    isFinalSet = true;
-                    break;
-                }
-            }
-
-            if (!isFinalSet) {
-                dfa.addState(currentSetName);
-            }
 
             // explore currentSet's children via alphabet - for each transition from currentState
-            for (NFAState child : currentSet) {
-                for (Character c : alphabet) {
-                    Set<NFAState> transitionStates = child.getTo(c); // this could return an empty set
-                    Set<NFAState> transitionStatesAndEpsilons = getEpsilonDeltasFromSet(transitionStates); // this set will become the new DFA state
-                    if (transitionStatesAndEpsilons.isEmpty()) {continue;}
-                    String newDFAStateName = getDFANameFromSet(transitionStatesAndEpsilons);
+            for (Character c : alphabet) {
+                Set<NFAState> transitionStates = new HashSet<NFAState>();
+                Set<NFAState> transitionStatesAndEpsilons = new HashSet<NFAState>();
+                for (NFAState child : currentSet) {
+                    transitionStates.addAll(child.getTo(c)); // this could return an empty set
+                    transitionStatesAndEpsilons = getEpsilonDeltasFromSet(transitionStates); // this set will become the new DFA state
 
-                    if (!visitedNFAStates.contains(transitionStatesAndEpsilons)) {
+                    if (transitionStatesAndEpsilons.isEmpty()) {
+                        // checks if child maps to an empty set
+                        boolean childMapsToEmptySet = false;
+                        boolean isVisitedStateEquivalent = false;
+                        for (DFAState dfaS : dfa.getStates()) {
+                            String dfaStateName = dfaS.getName();
+                            String childDFAName = child.getDFAName();
+                            if (dfaStateName.equals(childDFAName)) {
+                                childMapsToEmptySet = true;
+                            }
+                        }
+
+                        // handles case where child does map to empty set, but still don't want to enqueue (tc1, tc2) and ....tc3 where equivalent state exists...????
+                        if (childMapsToEmptySet) {
+                            // add an empty set to represent NFA states that don't have any transitions
+                            String emptyStateName = "[]";
+                            dfa.addState(emptyStateName);
+                            dfa.addTransition(child.getDFAName(), c, emptyStateName);
+                            dfa.addTransition(emptyStateName, c, emptyStateName);
+                        }
+                        // intentional fallthrough - if transitionStatesAndEpsilons is empty but child does not map to an empty set we want do continue
+                    }
+                }
+
+                // this should only be done when we have transitions to explore, the case where we don't is handled in the foreach child loop above
+                if (!transitionStatesAndEpsilons.isEmpty()) {
+                    String newDFAStateName = getDFANameFromSet(transitionStatesAndEpsilons);
+                    // newDFAStateName retains its value if an equivalent state does not exist in the dfa, else it is set to the name of the equivalent state
+                    newDFAStateName = equivalentStateExists(newDFAStateName, dfa.getStates());
+
+
+                    if (!visitedNFAStates.contains(transitionStatesAndEpsilons) && !nfaSetQueue.contains(transitionStatesAndEpsilons)) {
                         nfaSetQueue.add(transitionStatesAndEpsilons);
                     }
 
-                    isFinalSet = false;
+                    boolean isFinalSet = false;
                     for (NFAState s : transitionStatesAndEpsilons) {
                         if (s.isFinal()) {
                             dfa.addFinalState(newDFAStateName);
@@ -141,7 +108,6 @@ public class NFA implements NFAInterface {
                 }
             }
         }
-
         return dfa;
     }
 
@@ -153,6 +119,33 @@ public class NFA implements NFAInterface {
             }
         }
         return false;
+    }
+
+    // TODO: this gets the subset not the set
+    private boolean isSameState(String s1, String s2) {
+        String[] sName1 = s1.substring(1,s1.length()-1).split(",");
+        String[] sName2 = s2.substring(1,s2.length()-1).split(",");
+        List<String> sName2List = Arrays.asList(sName2);
+        for (String s : sName1) {
+            // a single case where s is not present in sName2List means that the names are not equivalent
+            if (!sName2List.contains(s)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /*
+    * Returns true when the stateToCheck has an equivalent state already in the dfa
+    * */
+    private String equivalentStateExists(String checkName, Set<DFAState> dfaStates) {
+        for (DFAState dfaState : dfaStates) {
+            // states are equivalent when their sets are the same size and one is a subset of the other
+            if (isSameState(checkName, dfaState.getName()) && checkName.length() == dfaState.getName().length()) {
+                return dfaState.getName();
+            }
+        }
+        return checkName;
     }
 
 
@@ -191,6 +184,7 @@ public class NFA implements NFAInterface {
     @Override
     public Set<NFAState> getToState(NFAState from, char onSymb) {
         return null;
+        // TODO: Do we need this??
     }
 
     @Override

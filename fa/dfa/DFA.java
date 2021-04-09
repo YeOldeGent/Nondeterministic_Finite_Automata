@@ -73,10 +73,11 @@ public class DFA implements DFAInterface{
 		DFAState from = checkIfExists(fromState);
 		DFAState to = checkIfExists(toState);
 		if(from == null){
-			System.err.println("ERROR: No DFA state exists with name " + fromState);
+			System.err.println("ERROR: No DFA from state exists with name " + fromState);
+			System.err.println("trying to transition to toState: " + toState);
 			System.exit(2);
 		} else if (to == null){
-			System.err.println("ERROR: No DFA state exists with name " + toState);
+			System.err.println("ERROR: No DFA to state exists with name " + toState);
 			System.exit(2);
 		}
 		from.addTransition(onSymb, to);
