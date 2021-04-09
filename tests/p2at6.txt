@@ -1,0 +1,9 @@
+4
+0
+1 2 3 
+0a0 0e1 0b3 1b2 2e3 3a4 4e0 4b4
+abaa
+abb
+aba
+ababbb
+ababba

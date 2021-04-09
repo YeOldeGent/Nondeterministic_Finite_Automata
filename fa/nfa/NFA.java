@@ -55,7 +55,7 @@ public class NFA implements NFAInterface {
                 for (NFAState child : currentSet) {
                     transitionStates.addAll(child.getTo(c)); // this could return an empty set
                     transitionStatesAndEpsilons = getEpsilonDeltasFromSet(transitionStates); // this set will become the new DFA state
-
+                    // TODO: potential epsilon problem, with tcat6 and 7
                     if (transitionStatesAndEpsilons.isEmpty()) {
                         // checks if child maps to an empty set
                         boolean childMapsToEmptySet = false;

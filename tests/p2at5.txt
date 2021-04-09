@@ -1,0 +1,12 @@
+2 5
+0
+1 2 3 4
+0a0 0b0 0c0 0c1 0c3 1a1 1b2 1c2 2a2 2b2 3a3 3b3 3a4 3b4 4c5 5a5 5b5
+a
+ab
+abc
+ac
+aca
+acaa
+accacacca
+cbacba
